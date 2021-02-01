@@ -131,3 +131,22 @@ if ( ! function_exists( 'wp_sentry_safe' ) ) {
 	}
 
 }
+
+if ( defined( 'WP_SENTRY_TRACES_SAMPLE_RATE' ) ) {
+	add_action( 'plugins_loaded', function () {
+		$transactionContext = new \Sentry\Tracing\TransactionContext();
+		$transactionContext->setName( $_SERVER['REQUEST_URI'] );
+		$transactionContext->setOp( 'http.server' );
+		$transactionContext->setData( [
+				'url' => $_SERVER['REQUEST_URI'],
+				'method' => strtoupper( $_SERVER['REQUEST_METHOD'] ?? '' ),
+		] );
+		$transactionContext->setStartTimestamp( $_SERVER['REQUEST_TIME_FLOAT'] ?? null );
+		$GLOBALS['SENTRY_TRANSACTION'] = \Sentry\startTransaction( $transactionContext );
+	} );
+	add_action( 'shutdown', function () {
+		if ( isset( $GLOBALS['SENTRY_TRANSACTION'] ) && $GLOBALS['SENTRY_TRANSACTION'] instanceof \Sentry\Tracing\Transaction ) {
+			$GLOBALS['SENTRY_TRANSACTION']->finish();
+		}
+	} );
+}
