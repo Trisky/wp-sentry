@@ -12,15 +12,17 @@ It will auto detect authenticated users and add context where possible. All cont
 
 ## Requirements & Sentry PHP SDK
 
-This plugin requires PHP `5.4`+ but urges users to use a PHP version that is not end of life (EOL) and no longer supported. For an up-to-date list of PHP versions that are still supported see: http://php.net/supported-versions.php.
+This plugin requires PHP `7.2`+ but urges users to use a PHP version that is not end of life (EOL) and no longer supported. For an up-to-date list of PHP versions that are still supported see: http://php.net/supported-versions.php.
 
 - Version `2.1.*` of this plugin will be the last to support PHP `5.3`.
 - Version `2.2.*` of this plugin will be the last to support PHP `5.4`.
+- Version `3.11.*` of this plugin will be the last to support PHP `7.1`.
 
-Please note that version `3.x` is the most recent version of the wp-sentry plugin and only supports PHP `7.1` and up. If you need PHP `5.4-7.2` support check out version `2.x` but do keep in mind there are a lot of differences in the Sentry PHP SDK used.
+Please note that version `4.x` is the most recent version of the wp-sentry plugin and only supports PHP `7.2` and up. If you need PHP `5.4-7.1` support check out version `2.x` or `3.x` but do keep in mind there are a lot of differences in the Sentry PHP SDK used.
 
 - Version [`2.x`](https://github.com/stayallive/wp-sentry/tree/2.x) of the wp-sentry plugin uses the [`1.x`](https://github.com/getsentry/sentry-php/tree/1.x) version of the official Sentry PHP SDK.
-- Version [`3.x`](https://github.com/stayallive/wp-sentry/tree/master) of the wp-sentry plugin uses the [`2.x`](https://github.com/getsentry/sentry-php/tree/master) version of the official Sentry PHP SDK.
+- Version [`3.x`](https://github.com/stayallive/wp-sentry/tree/3.x) of the wp-sentry plugin uses the [`2.x`](https://github.com/getsentry/sentry-php/tree/2.x) version of the official Sentry PHP SDK.
+- Version [`4.x`](https://github.com/stayallive/wp-sentry/tree/master) of the wp-sentry plugin uses the [`3.x`](https://github.com/getsentry/sentry-php/tree/master) version of the official Sentry PHP SDK.
 
 
 ## Usage
@@ -53,7 +55,7 @@ define( 'WP_SENTRY_ERROR_TYPES', E_ALL & ~E_DEPRECATED & ~E_NOTICE & ~E_USER_DEP
 
 ---
 
-(Optionally) If this flag is enabled, certain personally identifiable information is added by active integrations. Without this flag they are never added to the event, to begin with. 
+(Optionally) If this flag is enabled, certain personally identifiable information is added by active integrations. Without this flag they are never added to the event, to begin with.
 
 If possible, it’s recommended to turn on this feature and use the server side PII stripping to remove the values instead.
 
@@ -83,10 +85,19 @@ define( 'WP_SENTRY_BROWSER_DSN', 'JS_DSN' );
 
 ---
 
+(Optionally) enable JavaScript performance tracing by adding this snippet to your `wp-config.php` and replace `0.3` with your desired sampling rate (`0.3` means sample ~30% of your traffic):
+```php
+define( 'WP_SENTRY_BROWSER_TRACES_SAMPLE_RATE', 0.3 );
+```
+
+**Note:** Do not set this constant or set it to `0.0` to disable the JavaScript performance tracing.
+
+---
+
 (Optionally) define a version of your site; by default the theme version will be used. This is used for tracking at which version of your site the error occurred. When combined with release tracking this is a very powerful feature.
 
 ```php
-define( 'WP_SENTRY_VERSION', 'v4.0.1' );
+define( 'WP_SENTRY_VERSION', 'v4.3.0' );
 ```
 
 (Optionally) define an environment of your site. Defaults to `unspecified`.
@@ -158,7 +169,7 @@ add_filter( 'wp_sentry_dsn', 'customize_sentry_dsn' );
 
 #### `wp_sentry_scope` (void)
 
-You can use this filter to customize the Sentry [scope](https://docs.sentry.io/enriching-error-data/context/?platform=php).
+You can use this filter to customize the Sentry [scope](https://docs.sentry.io/platforms/php/enriching-events/context/).
 
 Example usage:
 
@@ -182,7 +193,7 @@ add_filter( 'wp_sentry_scope', 'customize_sentry_scope' );
 
 #### `wp_sentry_options` (array)
 
-You can use this filter to customize the Sentry [options](https://docs.sentry.io/error-reporting/configuration/?platform=php).
+You can use this filter to customize the Sentry [options](https://docs.sentry.io/platforms/php/configuration/options/).
 
 Example usage:
 
@@ -190,9 +201,9 @@ Example usage:
 /**
  * Customize sentry options.
  *
- * @param array $options The current sentry options.
+ * @param \Sentry\Options $options The current sentry options.
  *
- * @return array
+ * @return void
  */
 function customize_sentry_options( \Sentry\Options $options ) {
     // Only sample 90% of the events
@@ -231,7 +242,7 @@ add_filter( 'wp_sentry_public_dsn', 'customize_public_sentry_dsn' );
 
 #### `wp_sentry_public_options` (array)
 
-You can use this filter to customize/override the Sentry [options](https://docs.sentry.io/error-reporting/configuration/?platform=browser#common-options) used to initialize the JS tracker.
+You can use this filter to customize/override the Sentry [options](https://docs.sentry.io/platforms/javascript/configuration/options/) used to initialize the JS tracker.
 
 > **WARNING:** These values are exposed to the public, so make sure you do not expose anything private !
 
@@ -243,7 +254,7 @@ Example usage:
  *
  * Note: Items prefixed with `regex:` in blacklistUrls and whitelistUrls option arrays
  * will be translated into pure RegExp.
- * 
+ *
  * @param array $options The current sentry public options.
  *
  * @return array
@@ -287,7 +298,7 @@ add_filter( 'wp_sentry_public_context', 'customize_sentry_public_context' );
 
 ## High volume of notices
 
-Many plugin in the WordPress ecosystem generate notices that are captured by the Senty plugin. 
+Many plugin in the WordPress ecosystem generate notices that are captured by the Sentry plugin.
 
 This can cause a high volume of events and even slower page loads because of those events being transmitted to Sentry.
 
@@ -319,6 +330,20 @@ try {
 }
 ```
 
+If you need to attach extra data only for the handled exception, you could add [Structured Context](https://docs.sentry.io/platforms/php/enriching-events/context/#structured-context):
+
+```php
+if (function_exists('wp_sentry_safe')) {
+    wp_sentry_safe(function (\Sentry\State\HubInterface $client) use ($e) {
+        $client->withScope(function (\Sentry\State\Scope $scope) use ($client, $e) {
+            $scope->setExtra('user_data', $e->getData());
+            $client->captureException($e);
+        });
+    });
+}
+```
+
+If you need to add data to the scope in every case use `configureScope` in [wp_sentry_scope filter](#wp_sentry_scope-void).
 
 ## Capturing plugin errors
 
@@ -338,7 +363,7 @@ You can remedy this by loading WordPress Sentry as a must-use plugin by creating
  * Author URI: https://alex.bouma.dev
  * License: MIT
  */
- 
+
 $wp_sentry = __DIR__ . '/../plugins/wp-sentry-integration/wp-sentry.php';
 
 if ( ! file_exists( $wp_sentry ) ) {
