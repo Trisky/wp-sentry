@@ -64,7 +64,9 @@ class Wp_Sentry_Performance_Span_Manager {
 add_action('wp_sentry_span_start',function($name,$data = [], $description = ''){
     \Wp_Sentry_Performance_Span_Manager::start($name, $description, $data);
 });
-add_action('wp_sentry_span_finish',function($newData = [], $newName = ''){
+
+
+add_action('wp_sentry_span_finish',function(array $newData = [], $newName = ''){
     if(!is_array($newData)){
         $newData = [];
     }
