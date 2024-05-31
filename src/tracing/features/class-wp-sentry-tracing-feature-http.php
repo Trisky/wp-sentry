@@ -8,7 +8,7 @@ use Sentry\Tracing\SpanContext;
 /**
  * @internal This class is not part of the public API and may be removed or changed at any time.
  */
-class WP_Sentry_Tracing_Feature_HTTP {
+class WP_Sentry_Tracing_Feature_HTTP extends AWP_Sentry_Tracing_Feature {
 	use WP_Sentry_Tracks_Pushed_Scopes_And_Spans;
 
 	public function __construct() {
@@ -34,10 +34,10 @@ class WP_Sentry_Tracing_Feature_HTTP {
 		$fullUri    = $this->get_full_uri( $url );
 		$partialUri = $this->get_partial_uri( $fullUri );
 
-		$context = new SpanContext;
+		$context = $this->get_span_context_with_backtrace();
 		$context->setOp( 'http.client' );
 		$context->setDescription( $method . ' ' . $partialUri );
-		$context->setData( [
+		$context->setData( array_merge( $context->getData(), [
 			'url'                 => $partialUri,
 			// See: https://develop.sentry.dev/sdk/performance/span-data-conventions/#http
 			'http.query'          => $fullUri->getQuery(),
@@ -45,7 +45,7 @@ class WP_Sentry_Tracing_Feature_HTTP {
 			'http.request.method' => $method,
 			// @TODO: Figure out how to get the request body size
 			// 'http.request.body.size' => strlen( $parsed_args['body'] ?? '' ),
-		] );
+		]));
 
 		$this->push_span( $parentSpan->startChild( $context ) );
 
@@ -59,8 +59,12 @@ class WP_Sentry_Tracing_Feature_HTTP {
 		if ( $span === null ) {
 			return;
 		}
-
-		$response = $response['http_response'] ?? null;
+        if($response instanceof WP_Error){
+            // WP_Error doesn't have any data on the error. At least if it's a timeout
+            $response = null;
+        }else{
+            $response = $response['http_response'] ?? null;
+        }
 
 		if ( $response instanceof WP_HTTP_Requests_Response ) {
 			$span->setHttpStatus( $response->get_status() );
@@ -100,4 +104,9 @@ class WP_Sentry_Tracing_Feature_HTTP {
 			'path'   => $uri->getPath(),
 		] );
 	}
+
+    protected function get_back_trace_level(): int
+    {
+        return 7;
+    }
 }

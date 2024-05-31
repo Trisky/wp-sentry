@@ -14,7 +14,7 @@ use Sentry\Tracing\SpanContext;
  *
  * @internal This class is not part of the public API and may be removed or changed at any time.
  */
-class WP_Sentry_Tracing_Feature_Transients {
+class WP_Sentry_Tracing_Feature_Transients extends AWP_Sentry_Tracing_Feature {
 	use WP_Sentry_Tracks_Pushed_Scopes_And_Spans;
 
 	public function __construct() {
@@ -65,11 +65,11 @@ class WP_Sentry_Tracing_Feature_Transients {
 			return;
 		}
 
-		$context = new SpanContext;
+		$context = $this->get_span_context_with_backtrace();
 		$context->setOp( $operation );
-		$context->setData( [
+        $context->setData(array_merge($context->getData(), [
 			'cache.key' => $key,
-		] );
+		] ));
 		$context->setDescription( $key );
 
 		$this->push_span( $parentSpan->startChild( $context ) );
@@ -86,4 +86,9 @@ class WP_Sentry_Tracing_Feature_Transients {
 	private function str_starts_with( string $haystack, string $needle ): bool {
 		return strpos( $haystack, $needle ) === 0;
 	}
+
+    protected function get_back_trace_level(): int
+    {
+       return 7;
+    }
 }

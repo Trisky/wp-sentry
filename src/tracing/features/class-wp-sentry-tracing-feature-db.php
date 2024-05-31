@@ -6,7 +6,7 @@ use Sentry\Tracing\SpanContext;
 /**
  * @internal This class is not part of the public API and may be removed or changed at any time.
  */
-class WP_Sentry_Tracing_Feature_DB {
+class WP_Sentry_Tracing_Feature_DB extends AWP_Sentry_Tracing_Feature {
 	public function __construct() {
 		if ( ! defined( 'SAVEQUERIES' ) ) {
 			define( 'SAVEQUERIES', true );
@@ -23,8 +23,8 @@ class WP_Sentry_Tracing_Feature_DB {
 			return $query_data;
 		}
 
-		$context = new SpanContext;
-		$context->setOp( 'db.sql.query' );
+        $context = $this->get_span_context_with_backtrace();
+        $context->setOp( 'db.sql.query' );
 		$context->setDescription( $query );
 		$context->setStartTimestamp( $query_start );
 
@@ -32,4 +32,9 @@ class WP_Sentry_Tracing_Feature_DB {
 
 		return $query_data;
 	}
+
+    protected function get_back_trace_level(): int
+    {
+        return 8;
+    }
 }
